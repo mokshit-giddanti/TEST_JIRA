@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1730">
+  <meta name="csrf-token" content="{{ csrf }}">
+  <title>JIRA & BCS Hours Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-symbol">J<span>·</span></div>
+        <div class="brand-copy"><strong>JIRA<span class="brand-accent">SPACE</span></strong><small>BCS Hours Tracker</small></div>
+      </div>
+      <div class="side-section-label">WORKSPACE</div>
+      <nav aria-label="Main navigation" class="side-nav">
+        <button class="side-link active" id="navOverview" type="button"><span class="nav-icon">▦</span> Dashboard</button>
+        <button class="side-link" id="navJiras" type="button"><span class="nav-icon">☷</span> All JIRAs</button>
+      </nav>
+      <div class="side-section-label second">TOOLS</div>
+      <nav class="side-nav" aria-label="Tools">
+        <a class="side-link" href="/export/excel"><span class="nav-icon">⇩</span> Export to Excel</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="rule-card"><div class="rule-icon">✦</div><div><b>Conversion rule</b><span>1 point = 4 working hours<br>1 day = 8 hours</span></div></div>
+        {% if auth_enabled %}
+        <form method="post" action="/logout" id="logoutForm"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" class="signout">↪ &nbsp; Sign out</button></form>
+        {% endif %}
+      </div>
+    </aside>
+    <div class="main-area">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>Workspace</span><span class="slash">/</span><strong id="breadcrumb">Dashboard</strong></div>
+        <div class="top-actions"><span class="top-pill"><span class="live-dot"></span> Your workspace</span><div class="avatar">JT</div></div>
+      </header>
+      <main class="content" id="mainContent">
+        <section id="masterView">
+          <div class="page-heading">
+            <div><div class="eyebrow">OVERVIEW <span class="eyebrow-line"></span> JIRA MANAGEMENT</div><h1>JIRA & BCS Hours Tracker<span class="title-dot">.</span></h1><p>Track your sprint workload, log BCS hours, and monitor every JIRA in one place.</p></div>
+            <div class="heading-buttons"><a class="btn btn-secondary" href="/export/excel"><span class="btn-icon">↓</span> Download Excel</a><button class="btn btn-primary" id="newJiraBtn" type="button"><span class="btn-icon">＋</span> Add New JIRA</button></div>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-top"><span>Total JIRAs</span><span class="stat-icon blue">▦</span></div><div class="stat-value" id="countJiras">0</div><div class="stat-note">Tasks across your sprints</div></div>
+            <div class="stat-card"><div class="stat-top"><span>Allocated Hours</span><span class="stat-icon purple">◷</span></div><div class="stat-value" id="totalHours">0<span class="stat-unit">h</span></div><div class="stat-note">Total planned effort</div></div>
+            <div class="stat-card"><div class="stat-top"><span>Booked Hours</span><span class="stat-icon amber">↗</span></div><div class="stat-value" id="bookedHours">0<span class="stat-unit">h</span></div><div class="stat-note">Logged to BCS so far</div></div>
+            <div class="stat-card"><div class="stat-top"><span>Remaining Hours</span><span class="stat-icon green">✓</span></div><div class="stat-value" id="remainingHours">0<span class="stat-unit">h</span></div><div class="stat-note">Effort still available</div></div>
+          </div>
+          <section class="panel master-panel">
+            <div class="panel-head"><div><h2>Master JIRA Tracker</h2><p>All sprints and their allocated working hours</p></div><div class="panel-actions"><div class="search-wrap"><span>⌕</span><input id="search" aria-label="Search by JIRA or sprint" placeholder="Search JIRA or sprint..." autocomplete="off"></div><select id="sprintFilter" aria-label="Filter by sprint"><option value="">All sprints</option></select></div></div>
+            <div class="table-scroll"><table class="data-table"><thead><tr><th>Sprint</th><th>JIRA</th><th>Story Points</th><th>Days / Hours</th><th>Bookings</th><th class="actions-column">Actions</th></tr></thead><tbody id="jiraRows"></tbody></table></div>
+            <div class="table-foot"><span id="tableCount">0 JIRAs</span><button type="button" class="text-add" id="newJiraRow">＋ Add New JIRA Row</button></div>
+          </section>
+          <p class="footnote">Calculations are automatic: Story Points × 0.5 = Days · Story Points × 4 = Total Hours.</p>
+        </section>
+        <section id="detailView" hidden>
+          <div class="backbar"><button class="back-link" type="button" id="backBtn">← &nbsp; Back to Master Tracker</button></div>
+          <div class="page-heading detail-heading"><div><div class="eyebrow">BOOKING DETAILS <span class="eyebrow-line"></span> BCS TIMESHEET</div><h1 id="detailJiraTitle">JIRA</h1><p id="detailSubtitle">Booking history and remaining effort</p></div><div class="heading-buttons"><button class="btn btn-secondary" id="exportJiraBtn" type="button">↓ Export this JIRA</button><button class="btn btn-primary" id="newBookingBtn" type="button">＋ Add Booking</button></div></div>
+          <div class="stat-grid detail-stats"><div class="stat-card"><div class="stat-top"><span>Story Points</span><span class="stat-icon blue">◈</span></div><div class="stat-value" id="detailPoints">0</div><div class="stat-note" id="detailDays">0 days allocated</div></div><div class="stat-card"><div class="stat-top"><span>Total Hours</span><span class="stat-icon purple">◷</span></div><div class="stat-value" id="detailTotal">0<span class="stat-unit">h</span></div><div class="stat-note">From Story Points</div></div><div class="stat-card"><div class="stat-top"><span>Booked Hours</span><span class="stat-icon amber">↗</span></div><div class="stat-value" id="detailBooked">0<span class="stat-unit">h</span></div><div class="stat-note">Total BCS entries</div></div><div class="stat-card"><div class="stat-top"><span>Remaining Hours</span><span class="stat-icon green">✓</span></div><div class="stat-value" id="detailRemaining">0<span class="stat-unit">h</span></div><div class="stat-note">After all bookings</div></div></div>
+          <section class="panel"><div class="panel-head"><div><h2>BCS Booking History</h2><p>Each entry updates the remaining hours automatically</p></div><div class="panel-actions"><span id="bookingCount" class="count-chip">0 entries</span></div></div><div class="table-scroll"><table class="data-table booking-table"><thead><tr><th>Total Hours</th><th>Date</th><th>Booking Hours for BCS</th><th>Remark for BCS</th><th>Remaining Hours</th><th class="actions-column">Actions</th></tr></thead><tbody id="bookingRows"></tbody></table></div><div class="table-foot"><span>Newest dates appear last; balances are cumulative.</span><button type="button" class="text-add" id="newBookingRow">＋ Add New Booking Row</button></div></section>
+        </section>
+      </main>
+    </div>
+  </div>
+  <div id="modal" class="modal-overlay" hidden aria-hidden="true"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-header"><div><span class="modal-eyebrow" id="modalEyebrow">JIRA TRACKER</span><h2 id="modalTitle">Add New JIRA</h2></div><button type="button" id="closeModal" class="modal-close" aria-label="Close">×</button></div><form id="entryForm"><div id="formFields"></div><div class="form-error" id="formError" hidden></div><div class="modal-actions"><button class="btn btn-secondary" type="button" id="cancelModal">Cancel</button><button class="btn btn-primary" type="submit" id="saveEntryBtn">Save</button></div></form></div></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>
